@@ -11,6 +11,10 @@ from api.routes import api
 from api.admin import setup_admin
 from api.commands import setup_commands
 
+import cloudinary
+import cloudinary.uploader
+import cloudinary.api
+
 # from models import Person
 
 ENV = "development" if os.getenv("FLASK_DEBUG") == "1" else "production"
@@ -18,6 +22,23 @@ static_file_dir = os.path.join(os.path.dirname(
     os.path.realpath(__file__)), '../public/')
 app = Flask(__name__)
 app.url_map.strict_slashes = False
+
+
+app.config['CLOUD_NAME'] = os.getenv("CLOUD_NAME")
+app.config['API_KEY'] = os.getenv("API_KEY")
+app.config['API_SECRET'] = os.getenv("API_SECRET")
+
+
+cloudinary.config( 
+  cloud_name = app.config['CLOUD_NAME'], 
+  api_key = app.config['API_KEY'], 
+  api_secret = app.config['API_SECRET'],
+  secure = True
+)
+
+
+
+
 
 # database condiguration
 db_url = os.getenv("DATABASE_URL")
@@ -56,7 +77,17 @@ def sitemap():
         return generate_sitemap(app)
     return send_from_directory(static_file_dir, 'index.html')
 
-# any other endpoint will try to serve it like a static file
+
+@app.route('/img' , methods=["POST"])
+def upload_image():
+    img = request.files["img"]
+    img_url = cloudinary.uploader.upload(img)
+
+    return jsonify({"img_url":img_url["url"]}) , 200
+
+
+
+
 
 
 @app.route('/<path:path>', methods=['GET'])
